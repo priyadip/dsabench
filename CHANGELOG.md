@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-09
+
+### Added
+- `estimate_complexity()` candidate models extended beyond O(1)…O(n³) with
+  `O(log log n)`, `O(2ⁿ)`, `O(3ⁿ)`, `O(eⁿ)`, and `O(n!)` — exponential and
+  factorial-time algorithms (e.g. brute-force recursion) now get an
+  accurate label instead of being misfit against the largest polynomial.
+- `models=` parameter on `estimate_complexity()` to supply a custom
+  candidate list, replacing the built-in set entirely.
+- `bench.complexity.COMPLEXITY_MODELS` — the built-in candidate list,
+  importable and extendable: `models=COMPLEXITY_MODELS + [...]`.
+- Model-builder DSL in `bench.complexity`: `const()`, `poly()`,
+  `polylog()`, `loglog()`, `exp_base()`, `factorial()`, `raised()`, and
+  `compose()` for assembling arbitrary shapes (e.g. `O(n⁴log²n)` via
+  `compose(poly(4), polylog(0, 2))`, or a variable exponent via `raised()`)
+  without hand-writing raw lambdas.
+- Any candidate model that overflows or diverges at the given sizes
+  (e.g. `170!` exceeding float range) is now silently excluded from the
+  fit instead of crashing; `estimate_complexity()` raises `BenchError`
+  only if every candidate model is non-viable at the given sizes.
+
 ## [0.1.1] - 2026-07-09
 
 ### Changed
@@ -48,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   GitHub Actions CI (ruff + black + pytest on Python 3.10–3.13) and
   trusted-publishing release workflow.
 
-[Unreleased]: https://github.com/priyadip/dsabench/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/priyadip/dsabench/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/priyadip/dsabench/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/priyadip/dsabench/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/priyadip/dsabench/releases/tag/v0.1.0

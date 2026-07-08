@@ -18,16 +18,115 @@ from .exceptions import BenchError
 from .report import print_complexity
 from .types import ComplexityFit, ComplexityResult
 
-__all__ = ["estimate_complexity"]
-
-_MODELS: list[tuple[str, Callable[[float], float]]] = [
-    ("O(1)", lambda n: 1.0),
-    ("O(log n)", lambda n: math.log2(n) if n > 1 else 1.0),
-    ("O(n)", lambda n: n),
-    ("O(n log n)", lambda n: n * math.log2(n) if n > 1 else n),
-    ("O(n²)", lambda n: n * n),
-    ("O(n³)", lambda n: n * n * n),
+__all__ = [
+    "estimate_complexity",
+    "COMPLEXITY_MODELS",
+    "const",
+    "poly",
+    "polylog",
+    "loglog",
+    "exp_base",
+    "factorial",
+    "raised",
+    "compose",
 ]
+
+Model = Callable[[float], float]
+
+
+def const(k: float = 1.0) -> Model:
+    """``k`` — a flat model, for O(1)-style baselines."""
+    return lambda n: k
+
+
+def poly(power: float) -> Model:
+    """``n**power`` — e.g. ``poly(2)`` is O(n²), ``poly(0.5)`` is O(√n)."""
+    return lambda n: n**power
+
+
+def polylog(power: float, log_power: float = 1.0) -> Model:
+    """``n**power * log2(n)**log_power``, e.g. O(n⁴log²n) via ``polylog(4, 2)``."""
+
+    def f(n: float) -> float:
+        if n <= 1:
+            return n**power
+        return n**power * math.log2(n) ** log_power
+
+    return f
+
+
+def loglog() -> Model:
+    """``log2(log2(n))`` — the iterated logarithm, O(log log n)."""
+    return lambda n: math.log2(math.log2(n)) if n > 2 else 1.0
+
+
+def exp_base(base: float) -> Model:
+    """``base**n`` — e.g. ``exp_base(2)`` is O(2ⁿ), ``exp_base(math.e)`` is O(eⁿ)."""
+    return lambda n: base**n
+
+
+def factorial() -> Model:
+    """``n!`` via the Gamma function — O(n!), for permutation-style brute force."""
+    return lambda n: math.gamma(n + 1.0)
+
+
+def raised(base: Model, exponent: Model) -> Model:
+    """``base(n) ** exponent(n)`` — compose a variable base *and* exponent.
+
+    Lets you build models where the exponent itself grows with n, e.g.
+    O(n^(2·n!)) via ``raised(poly(1), compose(const(2), factorial()))``.
+    """
+    return lambda n: base(n) ** exponent(n)
+
+
+def compose(*models: Model) -> Model:
+    """Multiply several component models together, e.g. ``compose(poly(4), polylog(0, 2))``."""
+
+    def f(n: float) -> float:
+        result = 1.0
+        for model in models:
+            result *= model(n)
+        return result
+
+    return f
+
+
+#: The built-in candidate models fitted by :func:`estimate_complexity` when
+#: ``models`` is omitted. Import this to extend rather than replace it:
+#: ``models=COMPLEXITY_MODELS + [("O(n⁴log²n)", polylog(4, 2))]``.
+COMPLEXITY_MODELS: list[tuple[str, Model]] = [
+    ("O(1)", const(1.0)),
+    ("O(log log n)", loglog()),
+    ("O(log n)", lambda n: math.log2(n) if n > 1 else 1.0),
+    ("O(n)", poly(1)),
+    ("O(n log n)", lambda n: n * math.log2(n) if n > 1 else n),
+    ("O(n²)", poly(2)),
+    ("O(n³)", poly(3)),
+    ("O(2ⁿ)", exp_base(2.0)),
+    ("O(3ⁿ)", exp_base(3.0)),
+    ("O(eⁿ)", exp_base(math.e)),
+    ("O(n!)", factorial()),
+]
+
+
+def _safe_model_values(fn: Model, sizes: Sequence[int]) -> list[float] | None:
+    """Evaluate *fn* at every size, or ``None`` if it overflows/diverges.
+
+    Fast-growing or custom-composed models can exceed float range well
+    within reach of everyday benchmarks (``170!`` already overflows). Such
+    a model isn't a viable candidate at that scale, so it's dropped rather
+    than crashing the whole estimate.
+    """
+    values: list[float] = []
+    for n in sizes:
+        try:
+            v = fn(float(n))
+        except (OverflowError, ValueError, ZeroDivisionError):
+            return None
+        if not math.isfinite(v):
+            return None
+        values.append(v)
+    return values
 
 
 def _fit_through_origin(xs: Sequence[float], ys: Sequence[float]) -> tuple[float, float]:
@@ -51,6 +150,7 @@ def estimate_complexity(
     warmup: int = 1,
     quiet: bool | None = None,
     label: str | None = None,
+    models: Sequence[tuple[str, Model]] | None = None,
 ) -> ComplexityResult:
     """Estimate the asymptotic time complexity of *func* empirically.
 
@@ -60,6 +160,13 @@ def estimate_complexity(
         ...                           20_000, 80_000])       # doctest: +SKIP
         >>> est.best.label                                    # doctest: +SKIP
         'O(n)'
+
+    Any Python callable ``n -> float`` is a valid candidate model, so exotic
+    or composite shapes are supported via the builders in this module::
+
+        >>> from bench.complexity import COMPLEXITY_MODELS, polylog
+        >>> custom = COMPLEXITY_MODELS + [("O(n⁴log²n)", polylog(4, 2))]
+        >>> est = estimate_complexity(f, sizes=[...], models=custom)  # doctest: +SKIP
 
     Args:
         func: The function under test.
@@ -72,13 +179,18 @@ def estimate_complexity(
         warmup: Warmup runs per size.
         quiet: Suppress the printed report.
         label: Display name override.
+        models: Candidate ``(label, fn)`` pairs to fit against, replacing
+            the built-in :data:`COMPLEXITY_MODELS`. Any model that
+            overflows or diverges at the given sizes is silently excluded
+            rather than raising.
 
     Returns:
         A :class:`bench.types.ComplexityResult` with fits ranked best-first.
 
     Raises:
         BenchError: If fewer than three distinct sizes (or any size < 1)
-            are supplied, or if the function fails on some size.
+            are supplied, if the function fails on some size, or if every
+            candidate model overflows/diverges at the given sizes.
     """
     unique_sizes = sorted(set(int(s) for s in sizes))
     if len(unique_sizes) < 3:
@@ -107,11 +219,18 @@ def estimate_complexity(
             raise BenchError(f"{name} failed at n={n}: {detail}")
         times_ns.append(result.timing.fastest_ns)
 
-    xs_by_model = {label_: [fn(float(n)) for n in unique_sizes] for label_, fn in _MODELS}
+    candidates = models if models is not None else COMPLEXITY_MODELS
     fits = []
-    for label_, _fn in _MODELS:
-        c, r2 = _fit_through_origin(xs_by_model[label_], times_ns)
+    for label_, fn in candidates:
+        xs = _safe_model_values(fn, unique_sizes)
+        if xs is None:
+            continue  # overflows or diverges at these sizes — not viable here
+        c, r2 = _fit_through_origin(xs, times_ns)
         fits.append(ComplexityFit(label=label_, coefficient=c, r_squared=r2))
+    if not fits:
+        raise BenchError(
+            f"{name}: every candidate model overflowed or diverged at sizes {unique_sizes}"
+        )
     fits.sort(key=lambda f: f.r_squared, reverse=True)  # stable → simpler model wins ties
 
     estimate = ComplexityResult(

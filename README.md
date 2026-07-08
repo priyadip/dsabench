@@ -165,9 +165,20 @@ estimate_complexity(my_sort, sizes=[1_000, 2_000, 4_000, 8_000, 16_000],
 Estimated complexity: O(n log n)   (R² = 0.998)
 ```
 
-Fits your measured times against O(1), O(log n), O(n), O(n log n), O(n²), and
-O(n³) by least squares and ranks them by R². Treat it as a sanity check, not a
-proof — constant factors and caches are real.
+Fits your measured times against O(1), O(log log n), O(log n), O(n), O(n log n),
+O(n²), O(n³), O(2ⁿ), O(3ⁿ), O(eⁿ), and O(n!) by least squares and ranks them by
+R². Treat it as a sanity check, not a proof — constant factors and caches are
+real.
+
+Need a shape that's not on the list — O(n⁴log²n), a variable exponent, anything?
+Compose your own from `bench.complexity`'s builders and pass `models=`:
+
+```python
+from bench.complexity import COMPLEXITY_MODELS, polylog
+
+custom = COMPLEXITY_MODELS + [("O(n⁴log²n)", polylog(4, 2))]
+estimate_complexity(my_func, sizes=[...], models=custom)
+```
 
 ## Export and plot
 

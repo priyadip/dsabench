@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dsabench"
-version = "0.1.1"
+version = "0.2.0"
 description = "Beautiful one-line benchmarking for DSA, competitive programming, and interview prep: time, memory, CPU, calls, recursion, comparisons, and empirical complexity."
 readme = "README.md"
 license = { text = "MIT" }
