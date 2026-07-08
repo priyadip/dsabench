@@ -168,8 +168,7 @@ class AutoBench:
             if self.live and is_top:
                 # Safe: CPython suppresses profile events raised by the hook itself.
                 self._console.print(
-                    Text("⚡ ", style="cyan")
-                    + Text(record.name, style="bold magenta")
+                    Text(record.name, style="bold magenta")
                     + Text(f"  {format_time_ns(wall)}", style="green")
                 )
 
@@ -237,7 +236,7 @@ class AutoBench:
         table = Table(
             box=box.ROUNDED,
             border_style="cyan",
-            title="⚡ Auto Benchmark Summary",
+            title="Auto Benchmark Summary",
             title_justify="left",
         )
         table.add_column("Function", style="bold")

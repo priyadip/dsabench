@@ -111,7 +111,7 @@ def render_report(result: BenchmarkResult, config: Config) -> Panel:
         grid,
         box=box.ROUNDED,
         border_style="cyan",
-        title="⚡ Benchmark Report",
+        title="Benchmark Report",
         title_align="left",
         subtitle=result.timestamp,
         subtitle_align="right",
@@ -151,7 +151,7 @@ def print_comparison(
     table = Table(
         box=box.ROUNDED,
         border_style="cyan",
-        title="⚡ Comparison" + (f" — args {comparison.args_repr}" if comparison.args_repr else ""),
+        title="Comparison" + (f" — args {comparison.args_repr}" if comparison.args_repr else ""),
         title_justify="left",
     )
     table.add_column("Rank", justify="right")
@@ -214,7 +214,7 @@ def print_complexity(
     measured = Table(
         box=box.ROUNDED,
         border_style="cyan",
-        title=f"⚡ Complexity — {estimate.name}",
+        title=f"Complexity — {estimate.name}",
         title_justify="left",
     )
     measured.add_column("n", justify="right")

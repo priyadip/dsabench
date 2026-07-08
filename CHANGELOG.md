@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-09
+
+### Changed
+- Removed the decorative lightning-bolt (⚡) glyph from report/summary
+  titles printed by `bench()`, `compare()`, `estimate_complexity()`, and
+  `auto()`. Status glyphs (✓ / ⚠) are unchanged. README examples are
+  unaffected.
+
 ## [0.1.0] - 2026-07-08
 
 ### Added
@@ -40,5 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   GitHub Actions CI (ruff + black + pytest on Python 3.10–3.13) and
   trusted-publishing release workflow.
 
-[Unreleased]: https://github.com/priyadip/dsabench/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/priyadip/dsabench/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/priyadip/dsabench/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/priyadip/dsabench/releases/tag/v0.1.0
