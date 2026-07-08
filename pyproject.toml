@@ -1,0 +1,93 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dsabench"
+version = "0.1.0"
+description = "Beautiful one-line benchmarking for DSA, competitive programming, and interview prep: time, memory, CPU, calls, recursion, comparisons, and empirical complexity."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Priyadip" }]
+keywords = [
+    "benchmark",
+    "benchmarking",
+    "profiling",
+    "performance",
+    "dsa",
+    "algorithms",
+    "competitive-programming",
+    "complexity",
+    "timing",
+    "memory",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Benchmark",
+    "Typing :: Typed",
+]
+dependencies = ["rich>=13.0"]
+
+[project.optional-dependencies]
+viz = ["matplotlib>=3.7"]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "black>=24.0",
+    "matplotlib>=3.7",
+    "build>=1.2",
+    "twine>=5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/priyadip/dsabench"
+Repository = "https://github.com/priyadip/dsabench"
+Issues = "https://github.com/priyadip/dsabench/issues"
+Changelog = "https://github.com/priyadip/dsabench/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bench"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/bench", "tests", "examples", "README.md", "LICENSE", "CHANGELOG.md"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"src/bench/__init__.py" = ["F401"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["bench"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
