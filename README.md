@@ -5,7 +5,7 @@
 [![CI](https://github.com/priyadip/dsabench/actions/workflows/ci.yml/badge.svg)](https://github.com/priyadip/dsabench/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/dsabench.svg)](https://pypi.org/project/dsabench/)
 [![Python](https://img.shields.io/pypi/pyversions/dsabench.svg)](https://pypi.org/project/dsabench/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Typed](https://img.shields.io/badge/typing-py.typed-blue.svg)](https://peps.python.org/pep-0561/)
 
@@ -61,7 +61,7 @@ pip install dsabench            # core (only dependency: rich)
 pip install "dsabench[viz]"     # + matplotlib graphs
 ```
 
-Python 3.10+. Fully typed (`py.typed`), MIT licensed.
+Python 3.10+. Fully typed (`py.typed`), Apache-2.0 licensed.
 
 ## Three ways to use it
 
@@ -306,4 +306,4 @@ enforced by CI on Python 3.10–3.13.
 
 ## License
 
-[MIT](LICENSE) © 2026 Priyadip
+[Apache-2.0](LICENSE) © 2026 Priyadip

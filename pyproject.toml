@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dsabench"
-version = "0.2.0"
+version = "0.2.1"
 description = "Beautiful one-line benchmarking for DSA, competitive programming, and interview prep: time, memory, CPU, calls, recursion, comparisons, and empirical complexity."
 readme = "README.md"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
 authors = [{ name = "Priyadip" }]
 keywords = [
@@ -26,7 +26,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Education",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
