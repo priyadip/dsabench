@@ -8,7 +8,7 @@ import bench
 
 
 def test_version_and_all():
-    assert bench.__version__ == "0.2.1"
+    assert bench.__version__ == "0.3.0"
     for name in bench.__all__:
         assert hasattr(bench, name), f"missing export {name}"
 

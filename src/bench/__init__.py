@@ -13,7 +13,7 @@ See :func:`benchmark` (decorator), :func:`auto` (automatic mode),
 from .auto import AutoBench, AutoReport, FunctionRecord, auto, stop_auto
 from .benchmark import bench, bench_async, run
 from .compare import compare
-from .complexity import estimate_complexity
+from .complexity import estimate_complexity, estimate_space_complexity
 from .config import Config, configure, get_config, reset_config
 from .decorator import benchmark
 from .exceptions import BenchError, ConfigurationError, ExportError, GraphError
@@ -31,10 +31,11 @@ from .types import (
     ExceptionInfo,
     MemoryStats,
     Mode,
+    SpaceComplexityResult,
     TimingStats,
 )
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 __all__ = [
     # core API
@@ -46,6 +47,7 @@ __all__ = [
     "stop_auto",
     "compare",
     "estimate_complexity",
+    "estimate_space_complexity",
     # configuration
     "configure",
     "get_config",
@@ -73,6 +75,7 @@ __all__ = [
     "ComparisonResult",
     "ComplexityFit",
     "ComplexityResult",
+    "SpaceComplexityResult",
     "AutoBench",
     "AutoReport",
     "FunctionRecord",

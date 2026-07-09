@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-09
+
+### Added
+- `estimate_space_complexity()` — the same empirical model-fitting engine as
+  `estimate_complexity()` (candidate models, `models=` override, the
+  `bench.complexity` builder DSL, overflow guards), applied to **peak
+  memory** instead of wall time. One `tracemalloc`-instrumented call per
+  size; answers "is this DP table actually O(n²) in space?" the same way
+  `estimate_complexity()` answers it for time.
+- `SpaceComplexityResult` type (`sizes`, `peak_bytes`, `fits`, `.best`,
+  `.to_dict()`), exported from `bench`.
+- `export_result()` / `to_json()` / `to_csv()` / `to_markdown()` now accept
+  `SpaceComplexityResult` alongside the existing result types.
+
 ## [0.2.1] - 2026-07-09
 
 ### Changed
@@ -77,7 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   GitHub Actions CI (ruff + black + pytest on Python 3.10–3.13) and
   trusted-publishing release workflow.
 
-[Unreleased]: https://github.com/priyadip/dsabench/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/priyadip/dsabench/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/priyadip/dsabench/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/priyadip/dsabench/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/priyadip/dsabench/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/priyadip/dsabench/compare/v0.1.0...v0.1.1

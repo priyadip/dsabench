@@ -30,6 +30,7 @@ __all__ = [
     "ComparisonResult",
     "ComplexityFit",
     "ComplexityResult",
+    "SpaceComplexityResult",
 ]
 
 
@@ -396,6 +397,31 @@ class ComplexityResult:
             "name": self.name,
             "sizes": list(self.sizes),
             "times_ns": list(self.times_ns),
+            "best": self.best.label if self.fits else None,
+            "fits": [fit.to_dict() for fit in self.fits],
+        }
+
+
+@dataclass(slots=True)
+class SpaceComplexityResult:
+    """Result of :func:`bench.estimate_space_complexity` (fits sorted best-first)."""
+
+    name: str
+    sizes: tuple[int, ...]
+    peak_bytes: tuple[float, ...]
+    fits: list[ComplexityFit]
+
+    @property
+    def best(self) -> ComplexityFit:
+        """The best-fitting asymptotic model."""
+        return self.fits[0]
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-serialisable representation."""
+        return {
+            "name": self.name,
+            "sizes": list(self.sizes),
+            "peak_bytes": list(self.peak_bytes),
             "best": self.best.label if self.fits else None,
             "fits": [fit.to_dict() for fit in self.fits],
         }

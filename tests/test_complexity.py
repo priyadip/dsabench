@@ -187,3 +187,99 @@ def test_builder_compose():
 def test_builder_raised():
     f = raised(poly(1), const(3.0))
     assert f(5.0) == pytest.approx(5.0**3)
+
+
+# -- estimate_space_complexity ---------------------------------------------------
+
+
+def test_space_linear_alloc_identified_as_linear():
+    def alloc_linear(n):
+        return [0] * n
+
+    res = bench.estimate_space_complexity(alloc_linear, sizes=[1_000, 10_000, 100_000, 1_000_000])
+    assert res.best.label == "O(n)"
+    assert res.best.r_squared > 0.9
+
+
+def test_space_quadratic_alloc_identified_as_quadratic():
+    def alloc_quadratic(n):
+        return [[0] * n for _ in range(n)]
+
+    res = bench.estimate_space_complexity(alloc_quadratic, sizes=[50, 100, 200, 400])
+    assert res.best.label == "O(n²)"
+    assert res.best.r_squared > 0.9
+
+
+def test_space_constant_alloc_identified_as_constant():
+    def alloc_constant(_n):
+        return [0] * 256
+
+    res = bench.estimate_space_complexity(alloc_constant, sizes=[10, 100, 1_000, 10_000])
+    assert res.best.label == "O(1)"
+
+
+def test_space_requires_three_distinct_sizes():
+    with pytest.raises(BenchError):
+        bench.estimate_space_complexity(lambda n: [0] * n, sizes=[10, 10, 10])
+    with pytest.raises(BenchError):
+        bench.estimate_space_complexity(lambda n: [0] * n, sizes=[10, 20])
+
+
+def test_space_sizes_must_be_positive():
+    with pytest.raises(BenchError):
+        bench.estimate_space_complexity(lambda n: [0] * n, sizes=[0, 1, 2])
+
+
+def test_space_args_for_custom_mapping():
+    seen = []
+
+    def takes_list(xs):
+        seen.append(len(xs))
+        return xs
+
+    bench.estimate_space_complexity(
+        takes_list, sizes=[300, 600, 900], args_for=lambda n: ([0] * n,)
+    )
+    assert set(seen) >= {300, 600, 900}
+
+
+def test_space_prints_estimate(capsys):
+    bench.configure(quiet=False)
+    bench.estimate_space_complexity(lambda n: [0] * n, sizes=[1_000, 10_000, 100_000])
+    out = capsys.readouterr().out
+    assert "Estimated space complexity" in out
+    assert "O(" in out
+
+
+def test_space_to_dict():
+    res = bench.estimate_space_complexity(
+        lambda n: [0] * n, sizes=[1_000, 10_000, 100_000], quiet=True
+    )
+    d = res.to_dict()
+    assert d["sizes"] == [1_000, 10_000, 100_000]
+    assert len(d["peak_bytes"]) == 3
+    assert isinstance(d["fits"], list) and len(d["fits"]) >= 6
+
+
+def test_space_models_parameter_restricts_candidates():
+    res = bench.estimate_space_complexity(
+        lambda n: [0] * n,
+        sizes=[1_000, 10_000, 100_000],
+        quiet=True,
+        models=[("O(n)", poly(1)), ("O(n²)", poly(2))],
+    )
+    assert len(res.fits) == 2
+    assert res.best.label == "O(n)"
+
+
+def test_space_export_roundtrip(tmp_path):
+    res = bench.estimate_space_complexity(
+        lambda n: [0] * n, sizes=[1_000, 10_000, 100_000], quiet=True
+    )
+    from bench import export_result
+
+    json_path = export_result(res, tmp_path / "space.json")
+    md_path = export_result(res, tmp_path / "space.md")
+    assert json_path.exists()
+    assert md_path.exists()
+    assert "Space Complexity" in md_path.read_text(encoding="utf-8")

@@ -15,11 +15,12 @@ from typing import Any
 from .benchmark import run
 from .config import get_config
 from .exceptions import BenchError
-from .report import print_complexity
-from .types import ComplexityFit, ComplexityResult
+from .report import print_complexity, print_space_complexity
+from .types import ComplexityFit, ComplexityResult, SpaceComplexityResult
 
 __all__ = [
     "estimate_complexity",
+    "estimate_space_complexity",
     "COMPLEXITY_MODELS",
     "const",
     "poly",
@@ -141,6 +142,33 @@ def _fit_through_origin(xs: Sequence[float], ys: Sequence[float]) -> tuple[float
     return c, r_squared
 
 
+def _fit_candidates(
+    name: str,
+    sizes: Sequence[int],
+    measured: Sequence[float],
+    models: Sequence[tuple[str, Model]] | None,
+) -> list[ComplexityFit]:
+    """Fit every candidate model against *measured* values, ranked by R².
+
+    Shared by :func:`estimate_complexity` and :func:`estimate_space_complexity`
+    — *measured* is either per-size timings or per-size peak memory.
+    """
+    candidates = models if models is not None else COMPLEXITY_MODELS
+    fits = []
+    for label_, fn in candidates:
+        xs = _safe_model_values(fn, sizes)
+        if xs is None:
+            continue  # overflows or diverges at these sizes — not viable here
+        c, r2 = _fit_through_origin(xs, measured)
+        fits.append(ComplexityFit(label=label_, coefficient=c, r_squared=r2))
+    if not fits:
+        raise BenchError(
+            f"{name}: every candidate model overflowed or diverged at sizes {list(sizes)}"
+        )
+    fits.sort(key=lambda f: f.r_squared, reverse=True)  # stable → simpler model wins ties
+    return fits
+
+
 def estimate_complexity(
     func: Callable[..., Any],
     sizes: Sequence[int],
@@ -219,19 +247,7 @@ def estimate_complexity(
             raise BenchError(f"{name} failed at n={n}: {detail}")
         times_ns.append(result.timing.fastest_ns)
 
-    candidates = models if models is not None else COMPLEXITY_MODELS
-    fits = []
-    for label_, fn in candidates:
-        xs = _safe_model_values(fn, unique_sizes)
-        if xs is None:
-            continue  # overflows or diverges at these sizes — not viable here
-        c, r2 = _fit_through_origin(xs, times_ns)
-        fits.append(ComplexityFit(label=label_, coefficient=c, r_squared=r2))
-    if not fits:
-        raise BenchError(
-            f"{name}: every candidate model overflowed or diverged at sizes {unique_sizes}"
-        )
-    fits.sort(key=lambda f: f.r_squared, reverse=True)  # stable → simpler model wins ties
+    fits = _fit_candidates(name, unique_sizes, times_ns, models)
 
     estimate = ComplexityResult(
         name=name,
@@ -241,4 +257,92 @@ def estimate_complexity(
     )
     if not cfg.quiet:
         print_complexity(estimate, cfg)
+    return estimate
+
+
+def estimate_space_complexity(
+    func: Callable[..., Any],
+    sizes: Sequence[int],
+    *,
+    args_for: Callable[[int], Any] | None = None,
+    warmup: int = 0,
+    quiet: bool | None = None,
+    label: str | None = None,
+    models: Sequence[tuple[str, Model]] | None = None,
+) -> SpaceComplexityResult:
+    """Estimate the asymptotic *space* (peak memory) complexity of *func*.
+
+    Same fitting machinery as :func:`estimate_complexity` — candidate models,
+    the ``models=`` override, and the overflow guard all behave identically —
+    but each size is measured for peak traced heap usage (via
+    :mod:`tracemalloc`, one instrumented call per size) instead of wall time.
+
+    Example:
+        >>> from bench import estimate_space_complexity
+        >>> est = estimate_space_complexity(build_table, sizes=[100, 200,
+        ...                                 400, 800, 1600])  # doctest: +SKIP
+        >>> est.best.label                                    # doctest: +SKIP
+        'O(n²)'
+
+    Args:
+        func: The function under test.
+        sizes: At least three distinct positive input sizes. Spread them
+            over an order of magnitude or more for a trustworthy fit.
+        args_for: Maps a size ``n`` to the call arguments. Defaults to
+            passing ``n`` itself; a non-tuple return value is wrapped as a
+            single argument.
+        warmup: Untimed warmup runs before the single instrumented call
+            (lets caches/memoisation tables settle if that's the scenario
+            you're measuring; default 0 measures a true cold call).
+        quiet: Suppress the printed report.
+        label: Display name override.
+        models: Candidate ``(label, fn)`` pairs to fit against, replacing
+            the built-in :data:`COMPLEXITY_MODELS`.
+
+    Returns:
+        A :class:`bench.types.SpaceComplexityResult` with fits ranked
+        best-first.
+
+    Raises:
+        BenchError: If fewer than three distinct sizes (or any size < 1)
+            are supplied, if the function fails on some size, or if every
+            candidate model overflows/diverges at the given sizes.
+    """
+    unique_sizes = sorted(set(int(s) for s in sizes))
+    if len(unique_sizes) < 3:
+        raise BenchError("estimate_space_complexity() needs at least 3 distinct sizes")
+    if unique_sizes[0] < 1:
+        raise BenchError("sizes must be >= 1")
+
+    cfg = get_config().merged(quiet=quiet)
+    name = label or getattr(func, "__qualname__", None) or getattr(func, "__name__", "function")
+
+    peak_bytes: list[float] = []
+    for n in unique_sizes:
+        call_args = args_for(n) if args_for else (n,)
+        if not isinstance(call_args, tuple):
+            call_args = (call_args,)
+        result = run(
+            func,
+            call_args,
+            config=cfg.merged(memory=True, profile=False, cpu=False, mode="fast"),
+            repeat=1,
+            warmup=max(0, warmup),
+            label=name,
+        )
+        if result.exception is not None or result.memory is None:
+            detail = result.exception.message if result.exception else "no memory captured"
+            raise BenchError(f"{name} failed at n={n}: {detail}")
+        peak_bytes.append(float(result.memory.peak_bytes))
+
+    fits = _fit_candidates(name, unique_sizes, peak_bytes, models)
+
+    estimate = SpaceComplexityResult(
+        name=name,
+        sizes=tuple(unique_sizes),
+        peak_bytes=tuple(peak_bytes),
+        fits=fits,
+    )
+    if not cfg.quiet:
+        print_space_complexity(estimate, cfg)
     return estimate

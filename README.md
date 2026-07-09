@@ -180,6 +180,25 @@ custom = COMPLEXITY_MODELS + [("O(n⁴log²n)", polylog(4, 2))]
 estimate_complexity(my_func, sizes=[...], models=custom)
 ```
 
+## Estimate space complexity empirically
+
+Same fitting machinery, but for **peak memory** instead of time — useful for
+answering "is my DP table actually O(n²) in space, or did I accidentally make
+it O(n³)?":
+
+```python
+from bench import estimate_space_complexity
+
+estimate_space_complexity(build_dp_table, sizes=[50, 100, 200, 400, 800],
+                          args_for=lambda n: (n,))
+```
+
+```text
+Estimated space complexity: O(n²)   (R² = 0.9999)
+```
+
+Takes the same `models=` override and builder DSL as `estimate_complexity`.
+
 ## Export and plot
 
 ```python

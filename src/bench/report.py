@@ -14,7 +14,7 @@ from rich.table import Table
 from rich.text import Text
 
 from .config import Config
-from .types import BenchmarkResult, ComparisonResult, ComplexityResult
+from .types import BenchmarkResult, ComparisonResult, ComplexityResult, SpaceComplexityResult
 from .utils import format_bytes, format_time_ns
 
 __all__ = [
@@ -22,6 +22,7 @@ __all__ = [
     "print_report",
     "print_comparison",
     "print_complexity",
+    "print_space_complexity",
 ]
 
 
@@ -227,6 +228,48 @@ def print_complexity(
         best = estimate.best
         out.print(
             Text("Estimated complexity: ", style="bold")
+            + Text(best.label, style="bold green")
+            + Text(f"  (R² = {best.r_squared:.4f})")
+        )
+        fits = Table(box=box.SIMPLE_HEAD, border_style="cyan")
+        fits.add_column("Model")
+        fits.add_column("R²", justify="right")
+        for fit in estimate.fits:
+            style = "green" if fit.label == best.label else ""
+            fits.add_row(Text(fit.label, style=style), Text(f"{fit.r_squared:.4f}", style=style))
+        out.print(fits)
+
+
+def print_space_complexity(
+    estimate: SpaceComplexityResult,
+    config: Config,
+    console: Console | None = None,
+) -> None:
+    """Print the measured sizes and the space-complexity fit ranking.
+
+    Args:
+        estimate: Result of :func:`bench.estimate_space_complexity`.
+        config: Active configuration.
+        console: Optional console to reuse.
+    """
+    out = console or get_console(config)
+
+    measured = Table(
+        box=box.ROUNDED,
+        border_style="cyan",
+        title=f"Space Complexity — {estimate.name}",
+        title_justify="left",
+    )
+    measured.add_column("n", justify="right")
+    measured.add_column("Peak Memory", justify="right")
+    for size, peak in zip(estimate.sizes, estimate.peak_bytes, strict=True):
+        measured.add_row(f"{size:,}", format_bytes(peak))
+    out.print(measured)
+
+    if estimate.fits:
+        best = estimate.best
+        out.print(
+            Text("Estimated space complexity: ", style="bold")
             + Text(best.label, style="bold green")
             + Text(f"  (R² = {best.r_squared:.4f})")
         )

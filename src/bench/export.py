@@ -12,11 +12,11 @@ from typing import Any
 
 from .config import Config
 from .exceptions import ExportError
-from .types import BenchmarkResult, ComparisonResult, ComplexityResult
+from .types import BenchmarkResult, ComparisonResult, ComplexityResult, SpaceComplexityResult
 
 __all__ = ["to_json", "to_csv", "to_markdown", "export_result", "auto_export"]
 
-Exportable = BenchmarkResult | ComparisonResult | ComplexityResult
+Exportable = BenchmarkResult | ComparisonResult | ComplexityResult | SpaceComplexityResult
 
 _SUFFIXES = {".json": "json", ".csv": "csv", ".md": "markdown", ".markdown": "markdown"}
 
@@ -98,6 +98,10 @@ def to_csv(obj: Exportable) -> str:
         writer.writerow(["n", "time_ns"])
         for size, t_ns in zip(obj.sizes, obj.times_ns, strict=True):
             writer.writerow([size, t_ns])
+    elif isinstance(obj, SpaceComplexityResult):
+        writer.writerow(["n", "peak_bytes"])
+        for size, peak in zip(obj.sizes, obj.peak_bytes, strict=True):
+            writer.writerow([size, peak])
     else:  # pragma: no cover - defensive
         raise ExportError(f"Cannot export object of type {type(obj).__name__}")
     return buffer.getvalue()
@@ -158,6 +162,13 @@ def to_markdown(obj: Exportable) -> str:
         )
         best = obj.best.label if obj.fits else "—"
         return f"# Complexity — {obj.name}\n\nEstimated: **{best}**\n\n{body}\n"
+    if isinstance(obj, SpaceComplexityResult):
+        body = _md_table(
+            ["n", "Peak Memory (bytes)"],
+            [[f"{s}", f"{p:.1f}"] for s, p in zip(obj.sizes, obj.peak_bytes, strict=True)],
+        )
+        best = obj.best.label if obj.fits else "—"
+        return f"# Space Complexity — {obj.name}\n\nEstimated: **{best}**\n\n{body}\n"
     raise ExportError(f"Cannot export object of type {type(obj).__name__}")  # pragma: no cover
 
 
