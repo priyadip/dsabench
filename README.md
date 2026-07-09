@@ -262,6 +262,11 @@ Other honest details:
 
 - CPU % can exceed 100% for multi-threaded code — `process_time_ns` sums all
   threads. That's signal, not a bug.
+- On Windows, `time.process_time_ns` only advances once per system timer tick
+  (~15.6 ms via `GetProcessTimes`), so functions faster than that will often
+  report `CPU time: 0.000 ns` / `CPU %: 0.0%`. Trust the wall-clock numbers
+  for anything sub-millisecond — that's a platform clock limitation, not a
+  measurement bug.
 - Call counting uses `sys.setprofile`, counts Python-level frames (stdlib
   included, cProfile-style), and excludes dsabench's own machinery. A
   recursion like `fib(10)` reports exactly 177 calls, 176 recursive, depth 10.
